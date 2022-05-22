@@ -17,6 +17,19 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     await client.connect();
+    const userCollection = client.db("carpentoDB").collection("users");
+
+    app.put("/user/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = req.body;
+      const filter = { email };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: user,
+      };
+      const result = await userCollection.updateOne(filter, updateDoc, options);
+      res.send(result);
+    });
     console.log("mongodb connect");
   } finally {
     // await client.close();
