@@ -1,3 +1,4 @@
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
@@ -8,7 +9,6 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.onllh.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
@@ -19,7 +19,23 @@ async function run() {
   try {
     await client.connect();
     const userCollection = client.db("carpentoDB").collection("users");
+    const productCollection = client.db("carpentoDB").collection("products");
 
+    // collect all products from database
+    app.get("/product", async (req, res) => {
+      const products = await productCollection.find({}).toArray();
+      res.send(products);
+    });
+
+    // collect single products from database by searching object id
+    app.get("/product/:productId", async (req, res) => {
+      const productId = req.params.productId;
+      const searchId = { _id: ObjectId(productId) };
+      const result = await productCollection.findOne(searchId);
+      res.send(result);
+    });
+
+    // send user to the database in this api end point
     app.put("/user/:email", async (req, res) => {
       const email = req.params.email;
       const user = req.body;
