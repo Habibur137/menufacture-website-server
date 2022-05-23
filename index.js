@@ -140,12 +140,29 @@ async function run() {
     // make an admin  in this api end point ==========================
     app.put("/user/admin/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
-      const filter = { email };
-      const updateDoc = {
-        $set: { role: "admin" },
-      };
-      const result = await userCollection.updateOne(filter, updateDoc);
-      res.send(result);
+      const requester = req.decoded?.email;
+      console.log(requester);
+      const requesterAccount = await userCollection.findOne({
+        email: requester,
+      });
+      console.log(requesterAccount);
+      if (requesterAccount.role === "admin") {
+        const filter = { email };
+        const updateDoc = {
+          $set: { role: "admin" },
+        };
+        const result = await userCollection.updateOne(filter, updateDoc);
+        res.send(result);
+      } else {
+        return res.status(403).send({ message: "forbiden access" });
+      }
+    });
+    // admin chaking ================================================
+    app.get("/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const user = await userCollection.findOne({ email });
+      const isAdmin = user.role === "admin";
+      res.send({ admin: isAdmin });
     });
     console.log("mongodb connect");
   } finally {
