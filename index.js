@@ -20,14 +20,15 @@ async function run() {
     await client.connect();
     const userCollection = client.db("carpentoDB").collection("users");
     const productCollection = client.db("carpentoDB").collection("products");
+    const orderCollection = client.db("carpentoDB").collection("orders");
 
-    // collect all products from database
+    // collect all products from database==========================================
     app.get("/product", async (req, res) => {
       const products = await productCollection.find({}).toArray();
       res.send(products);
     });
 
-    // collect single products from database by searching object id
+    // collect single products from database by searching object id ================
     app.get("/product/:productId", async (req, res) => {
       const productId = req.params.productId;
       const searchId = { _id: ObjectId(productId) };
@@ -35,7 +36,31 @@ async function run() {
       res.send(result);
     });
 
-    // send user to the database in this api end point
+    // update a product after buying some amount =========================================
+    app.put("/product/:productId", async (req, res) => {
+      const id = req.params.productId;
+      const updatedProduct = req.body;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: updatedProduct,
+      };
+      const products = await productCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.send(products);
+    });
+
+    // order place post api end point ================================================
+    app.post("/order", async (req, res) => {
+      const orderInfo = req.body;
+      const result = await orderCollection.insertOne(orderInfo);
+      res.send(result);
+    });
+
+    // send user to the database in this api end point ==========================
     app.put("/user/:email", async (req, res) => {
       const email = req.params.email;
       const user = req.body;
