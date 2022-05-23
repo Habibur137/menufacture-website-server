@@ -36,6 +36,7 @@ async function run() {
     const userCollection = client.db("carpentoDB").collection("users");
     const productCollection = client.db("carpentoDB").collection("products");
     const orderCollection = client.db("carpentoDB").collection("orders");
+    const reviewCollection = client.db("carpentoDB").collection("reviews");
 
     // collect all products from database==========================================
     app.get("/product", async (req, res) => {
@@ -73,6 +74,19 @@ async function run() {
       const orderInfo = req.body;
       const result = await orderCollection.insertOne(orderInfo);
       res.send(result);
+    });
+
+    // reviews place post api end point ================================================
+    app.post("/review", verifyJWT, async (req, res) => {
+      const reviewInfo = req.body;
+      const result = await reviewCollection.insertOne(reviewInfo);
+      res.send(result);
+    });
+
+    // collect all reviews from database==========================================
+    app.get("/review", async (req, res) => {
+      const reviews = await reviewCollection.find({}).toArray();
+      res.send(reviews);
     });
 
     // send user to the database in this api end point ==========================
