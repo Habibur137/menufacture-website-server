@@ -76,6 +76,20 @@ async function run() {
       res.send(result);
     });
 
+    // collect all order  api end point ================================================
+    app.get("/order", verifyJWT, async (req, res) => {
+      const result = await orderCollection.find({}).toArray();
+      res.send(result);
+    });
+
+    // collect  order specific email id  api end point==========================================
+    app.get("/order/:email", verifyJWT, async (req, res) => {
+      const buyerEmail = req.params.email;
+      console.log(buyerEmail);
+      const result = await orderCollection.find({ buyerEmail }).toArray();
+      res.send(result);
+    });
+
     // reviews place post api end point ================================================
     app.post("/review", verifyJWT, async (req, res) => {
       const reviewInfo = req.body;
@@ -87,6 +101,12 @@ async function run() {
     app.get("/review", async (req, res) => {
       const reviews = await reviewCollection.find({}).toArray();
       res.send(reviews);
+    });
+
+    // collect all users from database==========================================
+    app.get("/user", verifyJWT, async (req, res) => {
+      const users = await userCollection.find({}).toArray();
+      res.send(users);
     });
 
     // send user to the database in this api end point ==========================
