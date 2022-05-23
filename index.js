@@ -44,6 +44,14 @@ async function run() {
       res.send(products);
     });
 
+    // add a  product to database==========================================
+    app.post("/product", verifyJWT, async (req, res) => {
+      const product = req.body;
+      console.log(product);
+      const addedProducts = await productCollection.insertOne(product);
+      res.send(addedProducts);
+    });
+
     // collect single products from database by searching object id ================
     app.get("/product/:productId", verifyJWT, async (req, res) => {
       const productId = req.params.productId;
@@ -84,10 +92,14 @@ async function run() {
 
     // collect  order specific email id  api end point==========================================
     app.get("/order/:email", verifyJWT, async (req, res) => {
+      const decodedEmail = req.decoded.email;
       const buyerEmail = req.params.email;
-      console.log(buyerEmail);
-      const result = await orderCollection.find({ buyerEmail }).toArray();
-      res.send(result);
+      if (decodedEmail == buyerEmail) {
+        const result = await orderCollection.find({ buyerEmail }).toArray();
+        res.send(result);
+      } else {
+        return res.status(403).send({ message: "forbiden access" });
+      }
     });
 
     // reviews place post api end point ================================================
@@ -123,6 +135,17 @@ async function run() {
         expiresIn: "1d",
       });
       res.send({ result, token });
+    });
+
+    // make an admin  in this api end point ==========================
+    app.put("/user/admin/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const filter = { email };
+      const updateDoc = {
+        $set: { role: "admin" },
+      };
+      const result = await userCollection.updateOne(filter, updateDoc);
+      res.send(result);
     });
     console.log("mongodb connect");
   } finally {
