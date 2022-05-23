@@ -9,6 +9,21 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+const verifyJWT = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send({ message: "unathorized access" });
+  }
+  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: "forbiden access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.onllh.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
@@ -29,7 +44,7 @@ async function run() {
     });
 
     // collect single products from database by searching object id ================
-    app.get("/product/:productId", async (req, res) => {
+    app.get("/product/:productId", verifyJWT, async (req, res) => {
       const productId = req.params.productId;
       const searchId = { _id: ObjectId(productId) };
       const result = await productCollection.findOne(searchId);
@@ -37,7 +52,7 @@ async function run() {
     });
 
     // update a product after buying some amount =========================================
-    app.put("/product/:productId", async (req, res) => {
+    app.put("/product/:productId", verifyJWT, async (req, res) => {
       const id = req.params.productId;
       const updatedProduct = req.body;
       const filter = { _id: ObjectId(id) };
@@ -54,7 +69,7 @@ async function run() {
     });
 
     // order place post api end point ================================================
-    app.post("/order", async (req, res) => {
+    app.post("/order", verifyJWT, async (req, res) => {
       const orderInfo = req.body;
       const result = await orderCollection.insertOne(orderInfo);
       res.send(result);
