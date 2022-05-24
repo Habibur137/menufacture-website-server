@@ -79,6 +79,15 @@ async function run() {
       res.send(addedProducts);
     });
 
+    // product delete  api end point ================================================
+    app.delete("/product/:id", verifyJWT, async (req, res) => {
+      const deleteId = req.params.id;
+      console.log(deleteId);
+      const filter = { _id: ObjectId(deleteId) };
+      const result = await productCollection.deleteOne(filter);
+      res.send(result);
+    });
+
     // collect single products from database by searching object id ================
     app.get("/product/:productId", verifyJWT, async (req, res) => {
       const productId = req.params.productId;
