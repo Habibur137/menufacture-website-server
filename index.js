@@ -2,8 +2,9 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
-const port = process.env.PORT || 5000;
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const jwt = require("jsonwebtoken");
+const port = process.env.PORT || 5000;
 const app = express();
 
 app.use(express.json());
@@ -37,7 +38,8 @@ async function run() {
     const productCollection = client.db("carpentoDB").collection("products");
     const orderCollection = client.db("carpentoDB").collection("orders");
     const reviewCollection = client.db("carpentoDB").collection("reviews");
-
+    const paymentCollection = client.db("carpentoDB").collection("payments");
+    //verify admin middleware
     const verifyAdmin = async (req, res, next) => {
       const requester = req.decoded?.email;
       const requesterAccount = await userCollection.findOne({
@@ -50,6 +52,20 @@ async function run() {
       }
     };
 
+    // create payment intent
+    app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+      const { paybleAmount } = req.body;
+      const amount = paybleAmount * 100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
     // collect all products from database==========================================
     app.get("/product", async (req, res) => {
       const products = await productCollection.find({}).toArray();
@@ -59,7 +75,6 @@ async function run() {
     // add a  product to database==========================================
     app.post("/product", verifyJWT, async (req, res) => {
       const product = req.body;
-      console.log(product);
       const addedProducts = await productCollection.insertOne(product);
       res.send(addedProducts);
     });
@@ -92,8 +107,23 @@ async function run() {
     // order place post api end point ================================================
     app.post("/order", verifyJWT, async (req, res) => {
       const orderInfo = req.body;
-      console.log(orderInfo);
       const result = await orderCollection.insertOne(orderInfo);
+      res.send(result);
+    });
+
+    // update order status after payment success
+    app.patch("/order/:id", async (req, res) => {
+      const id = req.params.id;
+      const payment = req.body;
+      const filter = { _id: ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          paid: true,
+          transactionId: payment.transactionId,
+        },
+      };
+      const result = await paymentCollection.insertOne(payment);
+      const updatedOrder = await orderCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
 
