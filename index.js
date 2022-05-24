@@ -38,6 +38,18 @@ async function run() {
     const orderCollection = client.db("carpentoDB").collection("orders");
     const reviewCollection = client.db("carpentoDB").collection("reviews");
 
+    const verifyAdmin = async (req, res, next) => {
+      const requester = req.decoded?.email;
+      const requesterAccount = await userCollection.findOne({
+        email: requester,
+      });
+      if (requesterAccount.role === "admin") {
+        next();
+      } else {
+        return res.status(403).send({ message: "forbiden access" });
+      }
+    };
+
     // collect all products from database==========================================
     app.get("/product", async (req, res) => {
       const products = await productCollection.find({}).toArray();
@@ -80,6 +92,7 @@ async function run() {
     // order place post api end point ================================================
     app.post("/order", verifyJWT, async (req, res) => {
       const orderInfo = req.body;
+      console.log(orderInfo);
       const result = await orderCollection.insertOne(orderInfo);
       res.send(result);
     });
@@ -94,12 +107,20 @@ async function run() {
     app.get("/order/:email", verifyJWT, async (req, res) => {
       const decodedEmail = req.decoded.email;
       const buyerEmail = req.params.email;
-      if (decodedEmail == buyerEmail) {
+      if (decodedEmail === buyerEmail) {
         const result = await orderCollection.find({ buyerEmail }).toArray();
         res.send(result);
       } else {
         return res.status(403).send({ message: "forbiden access" });
       }
+    });
+
+    // collect single  order  api end point ================================================
+    app.get("/order/:email/:orderId", verifyJWT, async (req, res) => {
+      const orderId = req.params.orderId;
+      const searchById = { _id: ObjectId(orderId) };
+      const result = await orderCollection.findOne(searchById);
+      res.send(result);
     });
 
     // reviews place post api end point ================================================
@@ -138,24 +159,14 @@ async function run() {
     });
 
     // make an admin  in this api end point ==========================
-    app.put("/user/admin/:email", verifyJWT, async (req, res) => {
+    app.put("/user/admin/:email", verifyJWT, verifyAdmin, async (req, res) => {
       const email = req.params.email;
-      const requester = req.decoded?.email;
-      console.log(requester);
-      const requesterAccount = await userCollection.findOne({
-        email: requester,
-      });
-      console.log(requesterAccount);
-      if (requesterAccount.role === "admin") {
-        const filter = { email };
-        const updateDoc = {
-          $set: { role: "admin" },
-        };
-        const result = await userCollection.updateOne(filter, updateDoc);
-        res.send(result);
-      } else {
-        return res.status(403).send({ message: "forbiden access" });
-      }
+      const filter = { email };
+      const updateDoc = {
+        $set: { role: "admin" },
+      };
+      const result = await userCollection.updateOne(filter, updateDoc);
+      res.send(result);
     });
     // admin chaking ================================================
     app.get("/admin/:email", async (req, res) => {
