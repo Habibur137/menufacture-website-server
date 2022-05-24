@@ -127,6 +127,14 @@ async function run() {
       res.send(result);
     });
 
+    // order delete  api end point ================================================
+    app.delete("/order/:id", verifyJWT, async (req, res) => {
+      const deleteId = req.params.id;
+      const filter = { _id: ObjectId(deleteId) };
+      const result = await orderCollection.deleteOne(filter);
+      res.send(result);
+    });
+
     // collect all order  api end point ================================================
     app.get("/order", verifyJWT, async (req, res) => {
       const result = await orderCollection.find({}).toArray();
