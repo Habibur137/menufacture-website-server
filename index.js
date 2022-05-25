@@ -39,6 +39,7 @@ async function run() {
     const orderCollection = client.db("carpentoDB").collection("orders");
     const reviewCollection = client.db("carpentoDB").collection("reviews");
     const paymentCollection = client.db("carpentoDB").collection("payments");
+    const profileCollection = client.db("carpentoDB").collection("profiles");
     //verify admin middleware
     const verifyAdmin = async (req, res, next) => {
       const requester = req.decoded?.email;
@@ -82,7 +83,6 @@ async function run() {
     // product delete  api end point ================================================
     app.delete("/product/:id", verifyJWT, async (req, res) => {
       const deleteId = req.params.id;
-      console.log(deleteId);
       const filter = { _id: ObjectId(deleteId) };
       const result = await productCollection.deleteOne(filter);
       res.send(result);
@@ -183,6 +183,31 @@ async function run() {
       res.send(reviews);
     });
 
+    // update a user profile  ========================================================
+    app.put("/profile/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      console.log(email);
+      const updatedInfo = req.body;
+      const filter = { email };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: updatedInfo,
+      };
+      const result = await profileCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.send(result);
+    });
+
+    // singe profile data==========================================
+    app.get("/profile/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      const profile = await profileCollection.findOne({ email });
+      res.send(profile);
+    });
+
     // collect all users from database==========================================
     app.get("/user", verifyJWT, async (req, res) => {
       const users = await userCollection.find({}).toArray();
@@ -219,7 +244,7 @@ async function run() {
     app.get("/admin/:email", async (req, res) => {
       const email = req.params.email;
       const user = await userCollection.findOne({ email });
-      const isAdmin = user.role === "admin";
+      const isAdmin = user?.role === "admin";
       res.send({ admin: isAdmin });
     });
     console.log("mongodb connect");
